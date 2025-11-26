@@ -14,7 +14,7 @@ def validate_model(model, val_loader):
     with torch.no_grad():
         for data in val_loader:
             data = data.to(config.DEVICE)
-            output = model(data)
+            output, _ = model(data)  # 修改：接收注意力权重但不使用
             pred = output.argmax(dim=1)
             val_preds.extend(pred.cpu().numpy())
             val_labels.extend(data.y.squeeze().cpu().numpy())
@@ -54,7 +54,7 @@ def improved_train_model(model, train_loader, val_loader):
         for data in train_loader:
             data = data.to(config.DEVICE)
             optimizer.zero_grad()
-            output = model(data)
+            output, attention_weights = model(data)  # 修改：接收注意力权重
             loss = criterion(output, data.y.squeeze())
             loss.backward()
 
@@ -105,15 +105,17 @@ def detailed_evaluate_model(model, test_loader):
     test_preds = []
     test_probs = []
     test_labels = []
+    all_attention_weights = []
 
     with torch.no_grad():
         for data in test_loader:
             data = data.to(config.DEVICE)
-            output = model(data)
+            output, attention_weights = model(data)  # 修改：接收注意力权重
             pred = output.argmax(dim=1)
             test_preds.extend(pred.cpu().numpy())
             test_probs.extend(torch.exp(output).cpu().numpy())
             test_labels.extend(data.y.squeeze().cpu().numpy())
+            all_attention_weights.extend(attention_weights.cpu().numpy())
 
     accuracy = accuracy_score(test_labels, test_preds)
 
@@ -129,7 +131,7 @@ def detailed_evaluate_model(model, test_loader):
     class_report = classification_report(test_labels, test_preds,
                                          target_names=['Normal', 'MCI', 'AD'])
 
-    return accuracy, auc, cm, test_preds, test_labels, class_report
+    return accuracy, auc, cm, test_preds, test_labels, class_report, all_attention_weights
 
 
 # 兼容性函数
@@ -140,5 +142,5 @@ def train_model(model, train_loader, val_loader):
 
 def evaluate_model(model, test_loader):
     """原始评估函数"""
-    accuracy, auc, cm, preds, labels, _ = detailed_evaluate_model(model, test_loader)
-    return accuracy, auc, cm, preds, labels
+    accuracy, auc, cm, preds, labels, _, attention_weights = detailed_evaluate_model(model, test_loader)
+    return accuracy, auc, cm, preds, labels, attention_weights

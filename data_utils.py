@@ -82,7 +82,6 @@ def create_brain_network_with_prob(num_nodes, connection_prob):
 
     return torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
-
 def generate_label(sample_idx, total_samples):
     """生成样本标签"""
     if sample_idx < total_samples * 0.4:
